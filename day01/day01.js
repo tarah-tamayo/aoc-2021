@@ -23,7 +23,7 @@ total_increase = 0
 prev = Infinity
 let window = []
 for (depth of depths) {
-    let d = parseInt(depth)
+    const d = parseInt(depth)
     window.push(d)
     if (window.length > 3) window.shift()
     if (window.length === 3) {

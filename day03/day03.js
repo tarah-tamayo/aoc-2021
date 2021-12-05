@@ -1,5 +1,3 @@
-const { O_TRUNC } = require('constants')
-
 fs = require('fs')
 const readings = fs.readFileSync('input', 'utf8').split('\n')
 
