@@ -4,7 +4,6 @@ let crabs = fs.readFileSync('input', 'utf8').split(',')
 console.log("***** PART 1 *****")
 crabs = crabs.map((x) => parseInt(x))
 crabs.sort((a, b) => a - b)
-console.log(`crabs: ${crabs.toString()}`)
 
 let sum = 0
 let crabs_left = [0]
@@ -18,7 +17,6 @@ for (let i = 1; i < crabs.length; i++) {
         crabs_left.push(sum)
     }
 }
-console.log(`crabs_left: ${crabs_left.toString()}`)
 
 sum = 0
 let crabs_right = [0]
@@ -30,7 +28,6 @@ for (let i = crabs.length-2; i >= 0; i--) {
         crabs_right.unshift(sum)
     }
 }
-console.log(`crabs_right: ${crabs_right.toString()}`)
 
 let fuel = Infinity
 let best_pos = -1
@@ -53,6 +50,25 @@ for (let pos = crabs[0]; pos <= crabs[crabs.length-1]; pos++) {
         fuel = sum
         best_pos = pos
     }
-    console.log(`pos: ${pos} i: ${i} left: ${left} right: ${right} sum: ${sum} fuel: ${fuel} pos: ${best_pos}`)
+}
+console.log(`fuel: ${fuel}  pos: ${best_pos}`)
+
+
+console.log("\n\n***** PART 2 *****")
+fuel = Infinity
+best_pos = -1
+i = 0
+for(let pos = crabs[0]; pos <= crabs[crabs.length-1]; pos++) {
+    let sum = 0
+    while(crabs[i] <= pos) i++
+    // Could use slices but in JS it's cheaper to do it in place
+    for (const crab of crabs) {
+        const n = Math.abs(crab - pos)
+        sum = sum + n*(n+1)/2 // Parabolic sum
+    }
+    if (sum < fuel) {
+        fuel = sum
+        best_pos = pos
+    }
 }
 console.log(`fuel: ${fuel}  pos: ${best_pos}`)
