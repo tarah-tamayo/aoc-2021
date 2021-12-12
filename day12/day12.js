@@ -52,7 +52,7 @@ class Node {
                 //console.log(`${debug}  -> ${next} ${revisits} ${next.visited}`)
                 let next_paths = next.getPaths(start, end, revisits, current, debug+"  ")
                 for (let n of next_paths) {
-                    n.unshift(this.name)
+                    n.push(this.name)
                 }
                 out = out.concat(next_paths)
             }
