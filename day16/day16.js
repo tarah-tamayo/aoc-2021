@@ -85,6 +85,7 @@ class UnderwaterMessageParser {
         this.used = []
         this.remaining = ""
         this.packets = []
+        this.versionSum = 0 // This is our main output!
     }
 
     getPackets() { return this.packets }
@@ -201,15 +202,25 @@ class UnderwaterMessageParser {
                 remaining = bin.substring(index)
                 break
             case "0":
-                opLen += 4 - opLen % 4
+                console.log(`--> parseOperator :: Bitlength is ${opLen}`)
+                if (opLen % 4 != 0)
+                    opLen += 4 - opLen % 4
+                console.log(`--> parseOperator :: But we need ${opLen}`)
+                console.log(`--> parseOperator :: We have bin length ${bin.length} and index ${index}`)
                 while (bin.length < index + opLen) bin += hex2bin(store.nextHex())
                 bits = bin.substring(index, index+opLen)
                 console.log(`--> parseOperator :: Looks like I'm storing a bunch of ${bits}`)
                 //while (bits.length % 4 != 0) bits += "0"
-                bits = parseInt(bits, 2).toString(16)
+                let lead = ""
+                while (bits.substring(0,4) == "0000") {
+                    bits = bits.substring(4)
+                    lead += "0" // hex
+                }
+                bits = lead + parseInt(bits, 2).toString(16)
                 console.log(`--> parseOperator :: You could possibly call that ${bits}`)
                 index += opLen
                 remaining = bin.substring(index)
+                console.log(`--> parseOperator :: Do I even need what's left over? ${remaining}`)
                 break
         }
         return [opType, bits, remaining]
@@ -231,6 +242,9 @@ class UnderwaterMessageParser {
         let mem = "" // remember previous packet's remainder
         while ((this.hex.length() > 2) || (store.length() > 2)) {
             let [ver, type, rem] = this.parseVersion(mem, store)
+            this.versionSum += ver
+            console.log(`<<< parsePackets >>> :: Packet Countdown Party!!!!! ${packetCountdown}`)
+            console.log(`<<< parsePackets >>> :: VERSION UPDATE!!!!! ${this.versionSum}`)
             console.log(`~.~.~.~.~.~... "${mem}" Packet Header Read ${ver} ${type} "${rem}"`)
             let packet = new Packet(ver, type)
             switch (type) {
@@ -241,23 +255,21 @@ class UnderwaterMessageParser {
                     break
                 default: // Operator Type
                     let operator = this.parseOperator(rem, store)
+                    packetCountdown-- // Decrement for the packet we just processed
                     if (operator[0] === "1") {
                         // Length in Packets
                         packet.setOpType(operator[0])
-                        packetCountdown-- // Decrement for the packet we just processed
                         if (packetCountdown > 0) {
                             packetCountdowns.push(packetCountdown)
                             opPackets.push(opPacket)
                         }
+                        // no *new* HexStore for Packet operators - use whatever was in use before. We still push so we can pop later
                         hexStores.push(store)
                         packetCountdown = operator[1] + 1 // One more - we'll decrement at the end of this loop
-                        opPacket = packet
-                        // no *new* HexStore for Packet operators - use whatever was in use before
                     } else {
                         // Length in Bytes
                         packet.setOpType(operator[0])
                         packet.setHexStore(new HexStore(operator[1]))
-                        packetCountdown-- // Decrement for the packet we just processed
                         if (packetCountdown > 0) {
                             packetCountdowns.push(packetCountdown)
                             opPackets.push(opPacket)
@@ -266,6 +278,8 @@ class UnderwaterMessageParser {
                         packetCountdown = Infinity // We care about bytes for this one!
                         store = packet.hexStore
                     }
+                    opPacket = packet
+                    mem = operator[2] // Need to remember this!
                     break
             }
             this.packets.push(packet)
@@ -290,12 +304,17 @@ class UnderwaterMessageParser {
                     console.log(`<<< ParsePackets >>> :: Ok, there are now ${store.length()} nibbles. Phew?`)
                 } else store = this.hex
             } 
-            if ((store === this.hex) || (packetCountdown === 0)) {
+            console.log(`<<< parsePackets >>> :: Packet Countdown Party's over :'( ${packetCountdown}`)
+            if ((store === this.hex) && (packetCountdown === 0)) {
                 console.log(`<<< parsePackets >>> :: Tossing out the "${mem}"`)
                 mem = ""
-                if (store.length < 2) {
+                if (store.length() < 2) {
                     store.nextHex()
                 }
+            }
+            if ((packetCountdown == Infinity) && (parseInt(mem) == 0)) {
+                console.log(`<<< parsePackets >>> :: Tossing out the "${mem}"`)
+                mem = ""
             }
         }
     }
@@ -306,3 +325,4 @@ let parser = new UnderwaterMessageParser(input)
 parser.parsePackets()
 let packets = parser.getPackets()
 for (let packet of packets) console.log(packet.toString())
+console.log(parser.versionSum)
